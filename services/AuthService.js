@@ -10,13 +10,19 @@ const {
 const HASH_FANTASMA = bcrypt.hashSync('senha-inexistente', BCRYPT_SALT_ROUNDS);
 
 class AuthService {
-  async registrar({ nome, email, senha }) {
+  async registrar({ nome, email, senha } = {}) {
     if (!nome || !email || !senha) {
       throw { status: 400, message: 'Campos obrigatórios ausentes: nome, email ou senha.' };
     }
+    if ([nome, email, senha].some(v => typeof v !== 'string')) {
+      throw { status: 400, message: 'Os campos nome, email e senha devem ser textos.' };
+    }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      throw { status: 422, message: 'Formato de e-mail inválido.' };
+    }
     if (senha.length < 6) {
-      throw { status: 400, message: 'A senha deve ter pelo menos 6 caracteres.' };
+      throw { status: 422, message: 'A senha deve ter pelo menos 6 caracteres.' };
     }
 
     const emailNormalizado = String(email).trim().toLowerCase();
@@ -41,9 +47,12 @@ class AuthService {
     return usuarioRetorno;
   }
 
-  async login({ email, senha }) {
+  async login({ email, senha } = {}) {
     if (!email || !senha) {
       throw { status: 400, message: 'E-mail e senha são obrigatórios.' };
+    }
+    if (typeof email !== 'string' || typeof senha !== 'string') {
+      throw { status: 422, message: 'E-mail e senha devem ser textos.' };
     }
 
     const usuario = repository.buscarUsuarioPorEmail(String(email).trim().toLowerCase());

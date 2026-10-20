@@ -11,7 +11,7 @@ class AutorController {
 
   store(req, res, next) {
     try {
-      const novoAutor = autorService.criar(req.body);
+      const novoAutor = autorService.criar(req.body || {});
       return res.status(201).json(novoAutor);
     } catch (error) {
       next(error);

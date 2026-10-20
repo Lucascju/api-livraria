@@ -27,20 +27,39 @@ class LivroService {
     };
   }
 
-  criar({ titulo, ano, autor_id }) {
-    if (!titulo || !autor_id) {
+  criar({ titulo, ano, autor_id } = {}) {
+    // 400: estrutura/tipos inválidos
+    if (titulo === undefined || titulo === null || autor_id === undefined || autor_id === null || autor_id === "") {
       throw { status: 400, message: "O título e o autor_id são obrigatórios." };
     }
+    if (typeof titulo !== "string" || titulo.trim() === "") {
+      throw { status: 400, message: "O título deve ser um texto não vazio." };
+    }
+    const autorId = Number(autor_id);
+    if (!Number.isInteger(autorId) || autorId <= 0) {
+      throw { status: 400, message: "O autor_id deve ser um número inteiro positivo." };
+    }
+    let anoFinal = new Date().getFullYear();
+    if (ano !== undefined && ano !== null && ano !== "") {
+      anoFinal = Number(ano);
+      if (!Number.isInteger(anoFinal)) {
+        throw { status: 400, message: "O ano deve ser um número inteiro." };
+      }
+    }
 
-    const autor = repository.buscarAutorPorId(autor_id);
+    // 422: dados bem formados, mas que violam regras de negócio
+    if (anoFinal < 0 || anoFinal > new Date().getFullYear()) {
+      throw { status: 422, message: "O ano de publicação não pode ser negativo nem estar no futuro." };
+    }
+    const autor = repository.buscarAutorPorId(autorId);
     if (!autor) {
-      throw { status: 404, message: "O autor informado não existe." };
+      throw { status: 422, message: "O autor informado não existe." };
     }
 
     return repository.salvarLivro({
       titulo: titulo.trim(),
-      ano: ano || new Date().getFullYear(),
-      autor_id: Number(autor_id)
+      ano: anoFinal,
+      autor_id: autorId
     });
   }
 
@@ -51,6 +70,9 @@ class LivroService {
 
     if (!texto || typeof texto !== "string" || texto.trim() === "") {
       throw { status: 400, message: "O texto do comentário não pode estar vazio." };
+    }
+    if (texto.trim().length > 500) {
+      throw { status: 422, message: "O comentário deve ter no máximo 500 caracteres." };
     }
 
     this.buscarPorId(livroId);

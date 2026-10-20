@@ -19,7 +19,7 @@ class LivroController {
 
   store(req, res, next) {
     try {
-      const novoLivro = livroService.criar(req.body);
+      const novoLivro = livroService.criar(req.body || {});
       return res.status(201).json(novoLivro);
     } catch (error) {
       next(error);
@@ -29,7 +29,7 @@ class LivroController {
   storeComment(req, res, next) {
     try {
       const comentario = livroService.adicionarComentario(req.params.id, {
-        texto: req.body.texto,
+        texto: req.body?.texto,
         usuario: req.usuario
       });
       return res.status(201).json(comentario);

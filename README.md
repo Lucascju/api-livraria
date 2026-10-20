@@ -5,6 +5,28 @@ API RESTful de Livros e Autores (Clean Architecture) com:
 1. **Armazenamento seguro de credenciais** — senhas com BCrypt (`bcrypt`, salt aleatório + work factor 10).
 2. **Autenticação stateless** — JWT (HS256) no header `Authorization: Bearer <token>`.
 3. **RBAC** — middlewares `autenticarToken` e `exigirRole(...)` protegendo as rotas.
+4. **Documentação OpenAPI 3.0** — Swagger UI interativo com botão **Authorize** (Bearer JWT).
+
+## 📖 Documentação da API
+
+| Recurso | URL |
+|---|---|
+| Swagger UI (interativo) | http://localhost:3000/docs |
+| Especificação OpenAPI (JSON) | http://localhost:3000/docs/api.json (alias: `/api-docs.json`) |
+
+**Testando rotas protegidas pelo navegador:**
+1. Em `/docs`, abra **POST /api/v1/auth/login** → *Try it out* → escolha o exemplo *Administrador* ou *Leitor* → *Execute*.
+2. Copie o `token` da resposta.
+3. Clique em **Authorize** 🔓, cole o token (sem `Bearer`) e confirme. O token persiste ao recarregar a página.
+4. Teste comentários, autores e livros. O Swagger envia `Authorization: Bearer <token>` automaticamente.
+
+A especificação é gerada por **swagger-jsdoc** a partir de anotações `@openapi` em `routes/*.js`
+(contrato ao lado do código). Schemas, respostas de erro reutilizáveis (`401`, `403`, `404`) e o
+`securityScheme` `bearerAuth` ficam em `docs/openapi.js`.
+
+**Convenção de erros:** `400` campo obrigatório ausente ou tipo inválido · `422` dado bem formado
+que viola regra de negócio (e-mail inválido, senha curta, autor inexistente, ano no futuro, comentário com mais de 500 caracteres) ·
+`401` token ausente/expirado/corrompido · `403` perfil sem permissão · `404` recurso inexistente · `409` e-mail duplicado.
 
 ## Como rodar
 
@@ -12,6 +34,8 @@ API RESTful de Livros e Autores (Clean Architecture) com:
 npm install
 node server.js
 ```
+
+Documentação interativa: **http://localhost:3000/docs**
 
 Front-end de teste: abra **http://localhost:3000** (servido pela própria API a partir de `public/index.html`)
 ou abra `public/index.html` com o **Live Server** do VS Code.
@@ -37,17 +61,16 @@ aleatório a cada inicialização (funciona normalmente, mas os tokens deixam de
 
 ## Matriz de permissões
 
-| Método | Rota | Acesso | Sucesso | Falha |
+| Método | Rota | Acesso | Sucesso | Falhas documentadas |
 |---|---|---|---|---|
-| GET | `/api/v1/livros` | Público | 200 | — |
-| GET | `/api/v1/livros/:id` | Público | 200 | — |
-| POST | `/api/v1/auth/register` | Público | 201 | — |
-| POST | `/api/v1/auth/login` | Público | 200 | 401 |
-| POST | `/api/v1/livros/:id/comentarios` | USER ou ADMIN | 201 | 401 |
-| POST | `/api/v1/autores` | ADMIN | 201 | 401 / 403 |
-| POST | `/api/v1/livros` | ADMIN | 201 | 401 / 403 |
-
-**401** = sem token, token inválido, adulterado ou expirado. **403** = autenticado, mas sem o perfil exigido.
+| GET | `/api/v1/livros` | Público | 200 | 500 |
+| GET | `/api/v1/livros/{id}` | Público | 200 | 404 |
+| GET | `/api/v1/autores` | Público | 200 | 500 |
+| POST | `/api/v1/auth/register` | Público | 201 | 400, 409, 422 |
+| POST | `/api/v1/auth/login` | Público | 200 | 400, 401, 422 |
+| POST | `/api/v1/livros/{id}/comentarios` | USER ou ADMIN | 201 | 400, 401, 404, 422 |
+| POST | `/api/v1/autores` | ADMIN | 201 | 400, 401, 403, 422 |
+| POST | `/api/v1/livros` | ADMIN | 201 | 400, 401, 403, 422 |
 
 ## Decisões de segurança
 
